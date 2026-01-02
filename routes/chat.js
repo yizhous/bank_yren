@@ -1,12 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const OpenAI = require('openai');
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // @desc    Chat with AI bank agent
 // @route   POST /api/chat
@@ -15,6 +9,19 @@ router.post('/', protect, async (req, res) => {
   const { message } = req.body;
 
   try {
+    // Check if OpenAI API Key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return res.json({
+        response: "很抱歉，AI聊天功能暂未配置。请联系管理员设置OpenAI API密钥。"
+      });
+    }
+
+    // Initialize OpenAI client dynamically
+    const OpenAI = require('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     // Create chat completion
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -36,8 +43,10 @@ router.post('/', protect, async (req, res) => {
       response: completion.choices[0].message.content,
     });
   } catch (error) {
-    console.error('OpenAI Error:', error);
-    res.status(500).json({ message: 'Failed to get AI response' });
+    console.error('AI Error:', error);
+    res.json({
+      response: "抱歉，我暂时无法回答您的问题。请稍后再试或联系人工客服。"
+    });
   }
 });
 
