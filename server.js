@@ -1,0 +1,59 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Set view engine for frontend
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Database connection
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bank-ai-agent', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('Database connected'))
+.catch(err => console.error('Database connection error:', err));
+
+// Routes
+const authRoutes = require('./routes/auth');
+const accountRoutes = require('./routes/account');
+const transactionRoutes = require('./routes/transaction');
+const chatRoutes = require('./routes/chat');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/account', accountRoutes);
+app.use('/api/transaction', transactionRoutes);
+app.use('/api/chat', chatRoutes);
+
+// Frontend routes
+app.get('/', (req, res) => {
+  res.render('login');
+});
+
+app.get('/dashboard', (req, res) => {
+  res.render('dashboard');
+});
+
+app.get('/chat', (req, res) => {
+  res.render('chat');
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

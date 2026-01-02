@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行智能体 - 智能聊天</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>银行智能体系统</h1>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/dashboard">仪表盘</a></li>
+                    <li><a href="/chat">智能聊天</a></li>
+                    <li><a href="#" onclick="logout()">退出登录</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Chat Container -->
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3>银行智能助理</h3>
+                <p>我是您的银行智能助理，有什么可以帮助您的？</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    您好！我是您的银行智能助理，我可以为您提供账户查询、交易历史、存款取款规则、利息计算等服务。请问有什么可以帮助您的？
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="请输入您的问题..." autocomplete="off">
+                <button id="sendMessage">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Get DOM elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessage');
+
+        // Function to add message to chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to send message to AI
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // Show typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai-message';
+            typingDiv.textContent = '正在思考...';
+            typingDiv.id = 'typingIndicator';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                // Send message to server
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                // Remove typing indicator
+                document.getElementById('typingIndicator').remove();
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Add AI response to chat
+                    addMessage(data.response, false);
+                } else {
+                    addMessage('抱歉，我暂时无法回答您的问题，请稍后重试。', false);
+                }
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                // Remove typing indicator
+                document.getElementById('typingIndicator').remove();
+                addMessage('抱歉，连接服务器失败，请稍后重试。', false);
+            }
+        }
+
+        // Event listeners
+        sendMessageBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

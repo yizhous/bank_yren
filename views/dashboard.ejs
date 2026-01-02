@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行智能体 - 仪表盘</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>银行智能体系统</h1>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/dashboard">仪表盘</a></li>
+                    <li><a href="/chat">智能聊天</a></li>
+                    <li><a href="#" onclick="logout()">退出登录</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="container dashboard">
+        <h2>欢迎回来，<span id="userName"></span></h2>
+        
+        <!-- Account Section -->
+        <div class="card">
+            <h3>我的账户</h3>
+            <div id="accountsContainer" class="account-grid">
+                <div class="account-card">
+                    <p>还没有账户，点击下方按钮创建</p>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="showCreateAccountForm()">创建新账户</button>
+        </div>
+
+        <!-- Create Account Form -->
+        <div class="card" id="createAccountForm" style="display: none;">
+            <h3>创建新账户</h3>
+            <form id="accountForm">
+                <div class="form-group">
+                    <label for="accountType">账户类型</label>
+                    <select id="accountType" name="accountType">
+                        <option value="savings">储蓄账户</option>
+                        <option value="current">活期账户</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">创建账户</button>
+            </form>
+        </div>
+
+        <!-- Transaction Section -->
+        <div class="card">
+            <h3>进行交易</h3>
+            <form id="transactionForm" class="transaction-form">
+                <div class="form-group">
+                    <label for="transAccount">选择账户</label>
+                    <select id="transAccount" name="accountId" required>
+                        <option value="">-- 选择账户 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transType">交易类型</label>
+                    <select id="transType" name="type" required>
+                        <option value="deposit">存款</option>
+                        <option value="withdraw">取款</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amount">金额</label>
+                    <input type="number" id="amount" name="amount" step="0.01" min="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">描述</label>
+                    <input type="text" id="description" name="description">
+                </div>
+            </form>
+            <button type="button" class="btn" onclick="submitTransaction()">确认交易</button>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="card">
+            <h3>最近交易</h3>
+            <div id="transactionHistory">
+                <p>暂无交易记录</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Get user info
+        const user = JSON.parse(localStorage.getItem('user'));
+        document.getElementById('userName').textContent = user.name;
+
+        // Load accounts
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/account', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const accounts = await response.json();
+                
+                const accountsContainer = document.getElementById('accountsContainer');
+                const transAccountSelect = document.getElementById('transAccount');
+                
+                if (accounts.length === 0) {
+                    accountsContainer.innerHTML = '<div class="account-card"><p>还没有账户，点击下方按钮创建</p></div>';
+                    transAccountSelect.innerHTML = '<option value="">-- 选择账户 --</option>';
+                    return;
+                }
+
+                // Update accounts display
+                accountsContainer.innerHTML = accounts.map(account => `
+                    <div class="account-card">
+                        <h4>账户: ${account.accountNumber}</h4>
+                        <p>类型: ${account.accountType === 'savings' ? '储蓄账户' : '活期账户'}</p>
+                        <p class="balance">余额: ¥${account.balance.toFixed(2)}</p>
+                        <p>创建时间: ${new Date(account.createdAt).toLocaleString()}</p>
+                    </div>
+                `).join('');
+
+                // Update transaction account dropdown
+                transAccountSelect.innerHTML = '<option value="">-- 选择账户 --</option>' + 
+                    accounts.map(account => `
+                        <option value="${account._id}">${account.accountNumber} (¥${account.balance.toFixed(2)})</option>
+                    `).join('');
+
+                // Load transactions for the first account
+                loadTransactions(accounts[0]._id);
+            } catch (error) {
+                console.error('Failed to load accounts:', error);
+            }
+        }
+
+        // Load transactions
+        async function loadTransactions(accountId) {
+            try {
+                const response = await fetch(`/api/transaction/history/${accountId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const transactions = await response.json();
+                
+                const historyContainer = document.getElementById('transactionHistory');
+                
+                if (transactions.length === 0) {
+                    historyContainer.innerHTML = '<p>暂无交易记录</p>';
+                    return;
+                }
+
+                historyContainer.innerHTML = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px;">类型</th>
+                                <th style="text-align: left; padding: 8px;">金额</th>
+                                <th style="text-align: left; padding: 8px;">描述</th>
+                                <th style="text-align: left; padding: 8px;">时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${transactions.map(trans => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 8px;">${trans.type === 'deposit' ? '存款' : '取款'}</td>
+                                    <td style="padding: 8px; color: ${trans.type === 'deposit' ? '#28a745' : '#dc3545'};">
+                                        ${trans.type === 'deposit' ? '+' : '-' }¥${trans.amount.toFixed(2)}
+                                    </td>
+                                    <td style="padding: 8px;">${trans.description || '无'}</td>
+                                    <td style="padding: 8px;">${new Date(trans.transactionDate).toLocaleString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                console.error('Failed to load transactions:', error);
+            }
+        }
+
+        // Show create account form
+        function showCreateAccountForm() {
+            const form = document.getElementById('createAccountForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Create account form submission
+        document.getElementById('accountForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const accountType = document.getElementById('accountType').value;
+
+            try {
+                const response = await fetch('/api/account/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ accountType })
+                });
+                
+                if (response.ok) {
+                    alert('账户创建成功！');
+                    document.getElementById('createAccountForm').style.display = 'none';
+                    loadAccounts();
+                } else {
+                    const error = await response.json();
+                    alert('创建失败: ' + error.message);
+                }
+            } catch (error) {
+                console.error('Failed to create account:', error);
+                alert('创建失败，请稍后重试');
+            }
+        });
+
+        // Submit transaction
+        async function submitTransaction() {
+            const accountId = document.getElementById('transAccount').value;
+            const type = document.getElementById('transType').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+
+            if (!accountId) {
+                alert('请选择账户');
+                return;
+            }
+
+            try {
+                const endpoint = type === 'deposit' ? 'deposit' : 'withdraw';
+                const response = await fetch(`/api/transaction/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ accountId, amount, description })
+                });
+                
+                if (response.ok) {
+                    alert('交易成功！');
+                    document.getElementById('transactionForm').reset();
+                    loadAccounts();
+                } else {
+                    const error = await response.json();
+                    alert('交易失败: ' + error.message);
+                }
+            } catch (error) {
+                console.error('Failed to submit transaction:', error);
+                alert('交易失败，请稍后重试');
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // Initial load
+        loadAccounts();
+    </script>
+</body>
+</html>

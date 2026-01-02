@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行智能体 - 登录</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h2>银行智能体系统</h2>
+        <div id="error" class="error"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required minlength="6">
+            </div>
+            <button type="submit" class="btn">登录</button>
+        </form>
+        <div class="text-center mt-2">
+            <p>还没有账户？ <a href="#" id="showRegister">注册</a></p>
+        </div>
+    </div>
+
+    <div class="auth-container" id="registerContainer" style="display: none;">
+        <h2>创建账户</h2>
+        <div id="registerError" class="error"></div>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="regName">姓名</label>
+                <input type="text" id="regName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="regEmail">邮箱</label>
+                <input type="email" id="regEmail" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">密码</label>
+                <input type="password" id="regPassword" name="password" required minlength="6">
+            </div>
+            <button type="submit" class="btn">注册</button>
+        </form>
+        <div class="text-center mt-2">
+            <p>已有账户？ <a href="#" id="showLogin">登录</a></p>
+        </div>
+    </div>
+
+    <script>
+        // 切换登录/注册表单
+        document.getElementById('showRegister').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector('.auth-container').style.display = 'none';
+            document.getElementById('registerContainer').style.display = 'block';
+        });
+
+        document.getElementById('showLogin').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('registerContainer').style.display = 'none';
+            document.querySelector('.auth-container').style.display = 'block';
+        });
+
+        // 登录表单处理
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 保存token到localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email }));
+                    // 跳转到仪表盘
+                    window.location.href = '/dashboard';
+                } else {
+                    document.getElementById('error').textContent = data.message;
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = '登录失败，请稍后重试';
+            }
+        });
+
+        // 注册表单处理
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 保存token到localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email }));
+                    // 跳转到仪表盘
+                    window.location.href = '/dashboard';
+                } else {
+                    document.getElementById('registerError').textContent = data.message;
+                }
+            } catch (error) {
+                document.getElementById('registerError').textContent = '注册失败，请稍后重试';
+            }
+        });
+    </script>
+</body>
+</html>
