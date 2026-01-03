@@ -21,12 +21,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bank-ai-agent', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bank-ai-agent')
 .then(() => console.log('Database connected'))
-.catch(err => console.error('Database connection error:', err));
+.catch(err => {
+  console.error('Database connection error:', err);
+  console.log('Server will continue running without database connection. Some features may be limited.');
+});
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -53,7 +53,7 @@ app.get('/chat', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`Server running at http://127.0.0.1:${PORT}`);
 });
