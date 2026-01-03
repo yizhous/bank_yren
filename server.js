@@ -11,7 +11,17 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+// 配置CORS，允许所有来源
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// 处理OPTIONS请求
+app.options('*', cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
