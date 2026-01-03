@@ -55,6 +55,34 @@ app.get('/chat', (req, res) => {
 // Start server
 // 优先使用Zeabur的WEB_PORT环境变量，然后使用PORT环境变量，最后使用默认值3000
 const PORT = process.env.WEB_PORT || process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+
+// 添加未捕获异常处理
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+// 添加未处理的Promise拒绝处理
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// 启动服务器
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`=== 服务器启动信息 ===`);
+  console.log(`服务器正在监听端口: ${PORT}`);
+  console.log(`监听地址: 0.0.0.0`);
+  console.log(`环境变量信息:`);
+  console.log(`- WEB_PORT: ${process.env.WEB_PORT}`);
+  console.log(`- PORT: ${process.env.PORT}`);
+  console.log(`- 最终使用端口: ${PORT}`);
+  console.log(`=== 启动完成 ===`);
+});
+
+// 添加服务器错误处理
+server.on('error', (error) => {
+  console.error('服务器错误:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`端口 ${PORT} 已被占用`);
+    process.exit(1);
+  }
 });
