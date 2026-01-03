@@ -53,7 +53,8 @@ app.get('/chat', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+// 优先使用Zeabur的WEB_PORT环境变量，然后使用PORT环境变量，最后使用默认值3000
+const PORT = process.env.WEB_PORT || process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
