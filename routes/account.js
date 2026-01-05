@@ -11,12 +11,13 @@ router.post('/create', protect, async (req, res) => {
     // Create account
     const account = await Account.create({
       user: req.user._id,
+      accountName: req.body.accountName,
       accountType: req.body.accountType || 'savings',
     });
 
     res.status(201).json(account);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 

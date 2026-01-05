@@ -9,7 +9,11 @@ const AccountSchema = new mongoose.Schema({
   accountNumber: {
     type: String,
     unique: true,
-    required: true,
+    required: false,
+  },
+  accountName: {
+    type: String,
+    required: [true, '账户名不能为空'],
   },
   accountType: {
     type: String,

@@ -41,6 +41,10 @@
             <h3>创建新账户</h3>
             <form id="accountForm">
                 <div class="form-group">
+                    <label for="accountName">账户名</label>
+                    <input type="text" id="accountName" name="accountName" required placeholder="请输入账户名称">
+                </div>
+                <div class="form-group">
                     <label for="accountType">账户类型</label>
                     <select id="accountType" name="accountType">
                         <option value="savings">储蓄账户</option>
@@ -197,6 +201,7 @@
         // Create account form submission
         document.getElementById('accountForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            const accountName = document.getElementById('accountName').value;
             const accountType = document.getElementById('accountType').value;
 
             try {
@@ -206,7 +211,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ accountType })
+                    body: JSON.stringify({ accountName, accountType })
                 });
                 
                 if (response.ok) {
